@@ -1,0 +1,156 @@
+HollowKnightPet v3.2 verification
+Logic tests:
+PASS falls onto taskbar without penetration
+PASS jump rises then lands
+PASS one way roof can be reached from below
+PASS walking off a roof causes falling
+PASS fast falling cannot tunnel through roof
+PASS nearest roof wins regardless of enumeration order
+PASS solid side collision
+PASS solid underside collision
+PASS newly overlapping window does not trap pet
+PASS removed window releases support
+PASS foreground window clips obscured roofs
+PASS negative monitor coordinates
+PASS immediate run stop and air reverse
+INFO jump heights: tap=54.2px, medium=92.1px, full=238.8px; run=439.1px/s
+PASS short tap and long hold have distinct jump heights
+PASS release during ballistic ascent cancels rise
+PASS jump input buffered just before landing
+PASS coyote jump shortly after leaving a roof
+PASS holding jump never auto jumps again
+PASS left edge attracts and holds without gravity drift
+PASS right edge attachment and reverse direction release
+PASS space kicks away from wall and cooldown prevents immediate reattachment
+PASS disabled attachment and internal monitor seams
+PASS screen change releases obsolete attachment
+PASS original frame resources load and all animations render
+PASS both window sides attach without solid collision mode
+PASS window attachment follows movement and resize
+PASS missing or occluded window edge releases attachment
+PASS window reverse and jump release move away from the correct surface
+PASS window roofs and interiors do not cause side attachment
+PASS foreground windows clip only covered side segments
+PASS solid collision and side attachment coexist
+PASS window attachment toggle and release cooldown
+PASS window shrinking past contact point releases attachment
+PASS ground walking never attaches to screen sides
+PASS ground walking never attaches to a window but jumping does
+PASS dragged pose can attach even when released at floor height
+PASS controls require click activation and clear on focus loss
+PASS local keys generate one action per physical press
+PASS blur cancels buffered jumps and wall kick momentum
+PASS spawn interval and random placement stay on taskbar
+PASS spawn cap toggle and frequency reconfiguration
+PASS two distinct sword swings kill and a swing hits each enemy only once
+PASS attack respects facing range height and inactive damage window
+PASS dead enemies despawn and disabled windows can be removed
+PASS settings validation and original monster rendering
+PASS running distance increases by fifteen percent from v3
+PASS selected side button consumes complete click and triggers once
+PASS unselected and disabled side buttons pass through
+PASS side button settings preserve old configurations and validate
+
+Native window and mouse shortcut regression (3 consecutive full runs passed):
+PASS test host acquired foreground
+PASS monster 1 visible
+PASS spawn 1 preserves foreground and held input
+PASS monster 2 visible
+PASS spawn 2 preserves foreground and held input
+PASS monster 3 visible
+PASS spawn 3 preserves foreground and held input
+PASS monster 4 visible
+PASS spawn 4 preserves foreground and held input
+PASS monster 5 visible
+PASS spawn 5 preserves foreground and held input
+PASS monster 6 visible
+PASS spawn 6 preserves foreground and held input
+PASS spawning preserves pending attack
+PASS despawn preserves control
+PASS switching away still clears input
+PASS Right Alt no longer activates pet
+PASS XButton1 activates actual pet and arms controls
+PASS actual pet disarms when another window activates
+PASS unselected XButton2 does not activate
+PASS menu selection switches activation to XButton2
+PASS disabled side shortcut does not activate
+PASS external process owns focus before activation 1 (expected=3017808, actual=3017808, armed=False)
+PASS side button activates from external process 1
+PASS activation 1 does not deliver back-button messages to external window
+PASS external process owns focus before activation 2 (expected=3017808, actual=3017808, armed=False)
+PASS side button activates from external process 2
+PASS activation 2 does not deliver back-button messages to external window
+PASS external process owns focus before activation 3 (expected=3017808, actual=3017808, armed=False)
+PASS side button activates from external process 3
+PASS activation 3 does not deliver back-button messages to external window
+PASS external process owns focus before activation 4 (expected=3017808, actual=3017808, armed=False)
+PASS side button activates from external process 4
+PASS activation 4 does not deliver back-button messages to external window
+PASS external process owns focus before activation 5 (expected=3017808, actual=3017808, armed=False)
+PASS side button activates from external process 5
+PASS activation 5 does not deliver back-button messages to external window
+PASS disabled shortcut preserves external focus
+PASS disabled shortcut passes side-button down and up to external window
+
+Packaged EXE smoke test:
+{
+  "frames": 186,
+  "windows": 1,
+  "platforms": 2,
+  "X": 1280,
+  "Y": 1274,
+  "Grounded": true,
+  "AttachedSide": 0,
+  "spriteFrames": 76,
+  "animation": "idle_still",
+  "controlsActive": false,
+  "foregroundIsPet": true,
+  "monsterWindows": 1,
+  "monitors": [
+    {
+      "Bounds": {
+        "Location": {
+          "IsEmpty": true,
+          "X": 0,
+          "Y": 0
+        },
+        "Size": {
+          "IsEmpty": false,
+          "Width": 2560,
+          "Height": 1440
+        },
+        "X": 0,
+        "Y": 0,
+        "Width": 2560,
+        "Height": 1440,
+        "Left": 0,
+        "Top": 0,
+        "Right": 2560,
+        "Bottom": 1440,
+        "IsEmpty": false
+      },
+      "WorkingArea": {
+        "Location": {
+          "IsEmpty": true,
+          "X": 0,
+          "Y": 0
+        },
+        "Size": {
+          "IsEmpty": false,
+          "Width": 2560,
+          "Height": 1368
+        },
+        "X": 0,
+        "Y": 0,
+        "Width": 2560,
+        "Height": 1368,
+        "Left": 0,
+        "Top": 0,
+        "Right": 2560,
+        "Bottom": 1368,
+        "IsEmpty": false
+      }
+    }
+  ],
+  "layeredWindow": true
+}

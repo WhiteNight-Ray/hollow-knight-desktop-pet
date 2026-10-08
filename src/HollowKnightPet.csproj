@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>HollowKnightPet</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>3.2.0</Version>
+    <ApplicationIcon>HollowKnight.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\**\*.png" />
+    <EmbeddedResource Include="HollowKnight.ico" />
+  </ItemGroup>
+</Project>

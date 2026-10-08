@@ -1,0 +1,19 @@
+# Build caches and editor state
+**/bin/
+**/obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.pdb
+
+# Local settings, logs and credentials
+.env
+.env.*
+*.log
+settings.json
+tests.txt
+smoke.json
+focus-tests.txt
+
+# The standalone deliverable in app/ is intentionally tracked.
