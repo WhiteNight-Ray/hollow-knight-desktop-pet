@@ -49,6 +49,7 @@ internal static class FocusTests
                 pet.SetActivationButton(0);SideClick(1);SideClick(2);
                 Check(!pet.ControlsActive,"disabled side shortcut does not activate");
                 pet.SetActivationButton(1);
+                AbilityKeys(pet,other,Check);
                 CrossProcess(path,pet,Check);
             }
             catch(Exception e) {results.Add("FAIL "+e);}
@@ -57,10 +58,28 @@ internal static class FocusTests
         Application.Run(host);
         return results.Any(r=>r.StartsWith("FAIL"))?1:0;
     }
-    static void Pump()
+    static void AbilityKeys(PetForm pet,Form other,Action<bool,string> check)
+    {
+        var area=Screen.PrimaryScreen!.WorkingArea;
+        pet.Motion.Reset(area.Left+600,area.Bottom-Physics.Height);pet.Motion.Grounded=true;SideClick(1);
+        Press(0x4A,0);
+        check(pet.NailVisible && pet.CurrentAbility==AbilityPhase.None,"ground J keeps ordinary nail attack");
+        Pump(300);float oldX=pet.Motion.X;Press(0x0D,0);
+        check(pet.Motion.X>oldX+60 && pet.Motion.X<=oldX+200.1f && pet.DashCooldownRemaining>0,"Enter starts shade dash through actual keyboard messages");
+        other.Activate();Native.SetForegroundWindow(other.Handle);Pump();
+        check(!pet.ControlsActive && pet.CurrentAbility==AbilityPhase.None,"focus loss cancels shade dash");
+        pet.Motion.Reset(area.Left+600,area.Bottom-Physics.Height);pet.Motion.Grounded=true;SideClick(1);
+        Press(0x20,0);check(!pet.Motion.Grounded,"Space puts actual pet in air");Press(0x4A,0);
+        check(pet.CurrentAbility is AbilityPhase.DiveWindup or AbilityPhase.DiveFall,"air J starts descending dark through actual keyboard messages");
+        Pump(180);
+        check(pet.CurrentAbility==AbilityPhase.DiveImpact && pet.Motion.Grounded,"descending dark reaches actual desktop floor");
+        other.Activate();Native.SetForegroundWindow(other.Handle);Pump();
+        check(pet.CurrentAbility==AbilityPhase.None && !pet.ControlsActive,"focus loss cancels dive recovery");
+    }
+    static void Pump(int milliseconds=80)
     {
         var clock=System.Diagnostics.Stopwatch.StartNew();
-        while(clock.ElapsedMilliseconds<80) {Application.DoEvents();Thread.Sleep(1);}
+        while(clock.ElapsedMilliseconds<milliseconds) {Application.DoEvents();Thread.Sleep(1);}
     }
     static void Press(byte key,uint flags)
     {
@@ -100,6 +119,21 @@ internal static class FocusTests
                 check(Native.GetForegroundWindow()==pet.Handle && pet.ControlsActive,$"side button activates from external process {i+1}");
                 check(File.ReadAllText(ready+".events")=="0",$"activation {i+1} does not deliver back-button messages to external window");
             }
+            // Put a real process directly behind the spell's opaque trailing art.
+            // Clicking it must still release control, even inside the larger canvas.
+            var area=Screen.PrimaryScreen!.WorkingArea;
+            Native.SetWindowPos(hwnd,-1,460,area.Bottom-150,130,150,0x40|0x10);
+            pet.Motion.Reset(600,area.Bottom-Physics.Height);pet.Motion.Grounded=true;SideClick(1);
+            keybd_event(0x0D,0,0,0);
+            try
+            {
+                Pump(30);Cursor.Position=new Point(520,area.Bottom-55);
+                mouse_event(2,0,0,0,0);mouse_event(4,0,0,0,0);Pump();
+                check(Native.GetForegroundWindow()==hwnd && !pet.ControlsActive,"spell area passes clicks through to another process");
+            }
+            finally {keybd_event(0x0D,0,2,0);}
+            Native.SetWindowPos(hwnd,-1,40,40,240,160,0x40|0x10);
+            Cursor.Position=new Point(100,100);
             pet.SetActivationButton(0);Native.SetForegroundWindow(hwnd);Pump();
             mouse_event(2,0,0,0,0);mouse_event(4,0,0,0,0);Pump();SideClick(1);
             check(Native.GetForegroundWindow()==hwnd && !pet.ControlsActive,"disabled shortcut preserves external focus");

@@ -341,6 +341,7 @@ internal static class Tests
             settings.ActivationMouseButton=2;settings.Normalize();Assert(settings.ActivationMouseButton==2,"valid setting lost");
             settings.ActivationMouseButton=5;settings.Normalize();Assert(settings.ActivationMouseButton==1,"invalid button accepted");
         });
+        AbilityTests.Run(Test);
         File.WriteAllLines(path,results); return results.Any(r=>r.StartsWith("FAIL"))?1:0;
     }
 }

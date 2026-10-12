@@ -1,5 +1,7 @@
-HollowKnightPet v3.2 verification
-Logic tests:
+HollowKnightPet v3.3.0 verification (2026-10-13)
+Windows x64 self-contained EXE
+
+Logic tests: 65 PASS / 0 FAIL
 PASS falls onto taskbar without penetration
 PASS jump rises then lands
 PASS one way roof can be reached from below
@@ -50,8 +52,23 @@ PASS running distance increases by fifteen percent from v3
 PASS selected side button consumes complete click and triggers once
 PASS unselected and disabled side buttons pass through
 PASS side button settings preserve old configurations and validate
+PASS shade dash travels 200 pixels in .25 seconds and preserves aerial height
+PASS shade dash honors facing direction and cooldown
+PASS shade dash collides with solid window sides without tunneling
+PASS shade dash clamps at desktop edge without automatic attachment
+PASS shade dash leaves an attached wall in the away direction
+PASS shade dash hits each monster once with a swept hitbox
+PASS descending dark requires air and suspends motion for windup
+PASS descending dark lands on nearest window roof at high fall speed
+PASS descending dark reaches taskbar and finishes recovery
+PASS descending dark deals fall and radial impact damage once per phase
+PASS ability interruption restores ordinary motion and keeps cooldown
+PASS special action priority prevents conflicting casts
+PASS Enter produces one dash request and focus loss clears it
+PASS all special animation phases and directions fit a transparent canvas
+PASS ability PNG decoding keeps native pixel scale on high DPI displays
 
-Native window and mouse shortcut regression (3 consecutive full runs passed):
+Native window / input checks: 47 PASS / 0 FAIL
 PASS test host acquired foreground
 PASS monster 1 visible
 PASS spawn 1 preserves foreground and held input
@@ -74,34 +91,54 @@ PASS actual pet disarms when another window activates
 PASS unselected XButton2 does not activate
 PASS menu selection switches activation to XButton2
 PASS disabled side shortcut does not activate
-PASS external process owns focus before activation 1 (expected=3017808, actual=3017808, armed=False)
+PASS ground J keeps ordinary nail attack
+PASS Enter starts shade dash through actual keyboard messages
+PASS focus loss cancels shade dash
+PASS Space puts actual pet in air
+PASS air J starts descending dark through actual keyboard messages
+PASS descending dark reaches actual desktop floor
+PASS focus loss cancels dive recovery
+PASS external process owns focus before activation 1 (expected=3415166, actual=3415166, armed=False)
 PASS side button activates from external process 1
 PASS activation 1 does not deliver back-button messages to external window
-PASS external process owns focus before activation 2 (expected=3017808, actual=3017808, armed=False)
+PASS external process owns focus before activation 2 (expected=3415166, actual=3415166, armed=False)
 PASS side button activates from external process 2
 PASS activation 2 does not deliver back-button messages to external window
-PASS external process owns focus before activation 3 (expected=3017808, actual=3017808, armed=False)
+PASS external process owns focus before activation 3 (expected=3415166, actual=3415166, armed=False)
 PASS side button activates from external process 3
 PASS activation 3 does not deliver back-button messages to external window
-PASS external process owns focus before activation 4 (expected=3017808, actual=3017808, armed=False)
+PASS external process owns focus before activation 4 (expected=3415166, actual=3415166, armed=False)
 PASS side button activates from external process 4
 PASS activation 4 does not deliver back-button messages to external window
-PASS external process owns focus before activation 5 (expected=3017808, actual=3017808, armed=False)
+PASS external process owns focus before activation 5 (expected=3415166, actual=3415166, armed=False)
 PASS side button activates from external process 5
 PASS activation 5 does not deliver back-button messages to external window
+PASS spell area passes clicks through to another process
 PASS disabled shortcut preserves external focus
 PASS disabled shortcut passes side-button down and up to external window
 
-Packaged EXE smoke test:
+Three-second native ability rendering smoke test:
 {
-  "frames": 186,
+  "frames": 185,
+  "elapsedSeconds": 3.0041681,
+  "observedFps": 61.581107928015086,
   "windows": 1,
   "platforms": 2,
-  "X": 1280,
+  "X": 1479.9988,
   "Y": 1274,
   "Grounded": true,
   "AttachedSide": 0,
   "spriteFrames": 76,
+  "abilityFrames": 82,
+  "ability": "None",
+  "abilityPhases": [
+    "DashRecovery",
+    "DiveFall",
+    "DiveImpact",
+    "DiveWindup",
+    "None",
+    "ShadowDash"
+  ],
   "animation": "idle_still",
   "controlsActive": false,
   "foregroundIsPet": true,
@@ -154,3 +191,6 @@ Packaged EXE smoke test:
   ],
   "layeredWindow": true
 }
+
+Visual QA: checked windup, dash, white recovery, falling, radial impact and exit frames; checked both facings and high DPI pixel copying.
+Preview GIF is a 30 FPS export; live physics is 120 Hz and observed drawing averaged 61.6 FPS during this short single-monitor run.

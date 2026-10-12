@@ -14,6 +14,7 @@ internal static class Program
         if (args.Length >= 2 && args[0] == "--self-test") return Tests.Run(args[1]);
         if (args.Length >= 2 && args[0] == "--focus-test") return FocusTests.Run(args[1]);
         if (args.Length >= 2 && args[0] == "--focus-target") return FocusTests.RunTarget(args[1]);
+        if (args.Length >= 2 && args[0] == "--preview-abilities") return AbilityPreview.Write(args[1]);
         if (args.Length >= 2 && args[0] == "--preview-combat")
         {
             using var art=new SpriteArt();using var enemyArt=new MonsterArt();
@@ -52,11 +53,11 @@ internal static class Program
             using var image = art.RenderClip(args.Length > 2 ? args[2] : "idle_still",0,1);
             image.Save(args[1]); return 0;
         }
-        bool smoke = args.Length >= 2 && args[0] == "--smoke-test";
+        bool smoke = args.Length >= 2 && args[0] is "--smoke-test" or "--ability-smoke-test";
         using var mutex = new Mutex(true,@"Local\HollowKnightPet.Desktop.v1",out bool created);
         if (!created && !smoke) { MessageBox.Show("桌宠已经在运行。右键小骑士或系统托盘图标可以设置或退出。","空洞骑士桌宠"); return 0; }
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
-        try { using var pet = new PetForm(smoke ? args[1] : null); Application.Run(pet); return 0; }
+        try { using var pet = new PetForm(smoke ? args[1] : null,abilitySmoke:smoke && args[0]=="--ability-smoke-test"); Application.Run(pet); return 0; }
         catch (Exception ex)
         {
             string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"HollowKnightPet");
@@ -74,6 +75,8 @@ internal sealed class PetForm : Form
     readonly SpriteArt art = new();
     readonly PetControls controls = new();
     readonly AttackState attack = new();
+    readonly AbilityState abilities=new();
+    readonly AbilityArt abilityArt=new();
     readonly MonsterWorld monsters = new();
     readonly MonsterArt monsterArt = new();
     readonly Dictionary<int,MonsterForm> monsterForms = [];
@@ -86,9 +89,12 @@ internal sealed class PetForm : Form
     readonly ToolStripMenuItem activationItem=new("鼠标侧键激活");
     readonly string? smokePath;
     readonly bool smokeAutoClose;
+    readonly bool abilitySmoke;
+    readonly HashSet<string> smokePhases=[];
+    bool smokeDashStarted,smokeDiveStarted;
     List<Platform> windows = [], colliders = [];
     List<WindowEdge> windowEdges = [];
-    bool paused, debug, dragging, mousePressed, menuOpen, resourcesDisposed, pendingJump;
+    bool paused, debug, dragging, mousePressed, menuOpen, resourcesDisposed, pendingJump,pendingDive;
     int facing = 1, frames;
     Point dragOffset;
     Point mouseOrigin;
@@ -96,16 +102,21 @@ internal sealed class PetForm : Form
     readonly List<int> hotkeys = [];
     ActivationShortcut? activationShortcut;
     internal bool ControlsActive=>controls.Armed;
+    internal Physics Motion=>physics;
+    internal AbilityPhase CurrentAbility=>abilities.Phase;
+    internal bool NailVisible=>attack.Visible(clock.Elapsed.TotalSeconds);
+    internal float DashCooldownRemaining=>abilities.DashRemaining;
 
-    public PetForm(string? smokePath,bool smokeAutoClose=true)
+    public PetForm(string? smokePath,bool smokeAutoClose=true,bool abilitySmoke=false)
     {
         this.smokePath = smokePath;
         this.smokeAutoClose=smokeAutoClose;
+        this.abilitySmoke=abilitySmoke;
         settings=smokePath==null?PetSettings.Load():new PetSettings();
         monsters.Configure(settings.MonstersEnabled,settings.SpawnSeconds,0);
         Text = "空洞骑士桌宠";
         FormBorderStyle = FormBorderStyle.None; ShowInTaskbar = false; TopMost = true;
-        AutoScaleMode = AutoScaleMode.None; ClientSize = new Size(KnightArt.W+CombatArt.Margin*2,KnightArt.H);
+        AutoScaleMode = AutoScaleMode.None; ClientSize = new Size(AbilityArt.Width,AbilityArt.Height);
         KeyPreview=true;
         StartPosition = FormStartPosition.Manual;
         pauseItem = new ToolStripMenuItem("暂停键盘控制（F8）",null,(_,_) => TogglePause());
@@ -127,7 +138,8 @@ internal sealed class PetForm : Form
         frequencyItem.DropDownItems.Add("自定义间隔…",null,(_,_)=>ChooseSpawnInterval());
         frequencyItem.Text=$"刷怪间隔：{settings.SpawnSeconds} 秒";
         menu.Items.Add(new ToolStripMenuItem("小骑士 · 桌面漫游") { Enabled=false });
-        menu.Items.Add(new ToolStripMenuItem("点击 / 侧键激活 · A/D 移动 · Space 跳 · J 攻击") { Enabled=false });
+        menu.Items.Add(new ToolStripMenuItem("点击 / 侧键激活 · A/D 移动 · Space 跳 · Enter 黑冲") { Enabled=false });
+        menu.Items.Add(new ToolStripMenuItem("J：地面挥刀 / 空中黑砸") {Enabled=false});
         foreach(var choice in new[] {(1,"后退侧键（XButton1，默认）"),(2,"前进侧键（XButton2）"),(0,"关闭侧键激活")})
         {
             int button=choice.Item1;
@@ -160,12 +172,22 @@ internal sealed class PetForm : Form
         KeyDown += (_,e)=> {
             if(e.KeyCode==Keys.Escape) StopControl();
             else if(controls.Armed && !paused && !menuOpen) controls.KeyDown(e.KeyCode);
-            if(e.KeyCode is Keys.A or Keys.D or Keys.Space or Keys.J or Keys.Escape) {e.Handled=true;e.SuppressKeyPress=true;}
+            if(e.KeyCode is Keys.A or Keys.D or Keys.Space or Keys.J or Keys.Enter or Keys.Escape) {e.Handled=true;e.SuppressKeyPress=true;}
         };
         KeyUp += (_,e)=>controls.KeyUp(e.KeyCode);
     }
 
     protected override bool ShowWithoutActivation => true;
+    protected override bool ProcessCmdKey(ref Message message,Keys keyData)
+    {
+        // WinForms treats Enter as a dialog command before raising KeyDown.
+        if(keyData==Keys.Enter)
+        {
+            if(controls.Armed && !paused && !menuOpen)controls.KeyDown(Keys.Enter);
+            return true;
+        }
+        return base.ProcessCmdKey(ref message,keyData);
+    }
     protected override CreateParams CreateParams
     {
         get { var cp = base.CreateParams; cp.ExStyle |= 0x80000 | 0x80; return cp; }
@@ -180,18 +202,24 @@ internal sealed class PetForm : Form
         ResetPosition(); RefreshWorld(); lastTick=clock.Elapsed.TotalSeconds;
         timer.Start();
         if(smokePath == null) tray.ShowBalloonTip(4500,"点击小骑士或按鼠标侧键开始控制",activationShortcut.Installed
-            ? "A/D 移动，Space 跳跃，J 攻击。点击其他应用或按 Esc 自动停控。右键设置刷怪间隔。"
+            ? "A/D 移动，Space 跳跃，Enter 黑冲，J 地面挥刀 / 空中黑砸。切换应用或 Esc 停控。"
             : "鼠标侧键监听启动失败，请点击角色激活。A/D 移动，Space 跳跃，J 攻击。",ToolTipIcon.Info);
     }
     protected override void WndProc(ref Message m)
     {
+        if(m.Msg==0x84)
+        {
+            var point=Cursor.Position;
+            var heroBounds=new RectangleF(physics.X-KnightArt.BodyLeft,physics.Y-KnightArt.BodyTop,KnightArt.W,KnightArt.H);
+            if(!heroBounds.Contains(point)) {m.Result=-1;return;} // Spell effects never capture clicks meant for other apps.
+        }
         if(m.Msg==0x21) { m.Result=1; return; } // MA_ACTIVATE for an explicit user click.
         if(m.Msg==ActivationShortcut.Message) { ActivateControl();return; }
         if(m.Msg==0x312) { if(m.WParam==1) TogglePause(); if(m.WParam==2) ResetPosition(); return; }
         if(m.Msg==0x7e || m.Msg==0x1a) lastScan=-1; // display / working-area changed
         base.WndProc(ref m);
     }
-    void StopControl() { controls.Stop(); physics.CancelInput(); pendingJump=false; attack.Cancel(); }
+    void StopControl() { controls.Stop(); physics.CancelInput(); pendingJump=pendingDive=false; attack.Cancel();abilities.Cancel();abilityArt.ClearTrail(); }
     internal void SetActivationButton(int button)
     {
         settings.ActivationMouseButton=button;settings.Normalize();
@@ -239,6 +267,7 @@ internal sealed class PetForm : Form
     }
     void ResetPosition()
     {
+        abilities.Cancel();abilityArt.ClearTrail();pendingJump=pendingDive=false;attack.Cancel();
         var screen = Screen.FromPoint(Cursor.Position).WorkingArea;
         physics.Reset(screen.Left+screen.Width*.5f,screen.Bottom-Physics.Height);
         physics.Grounded=true; Present();
@@ -267,15 +296,31 @@ internal sealed class PetForm : Form
         double elapsed=Math.Clamp(now-lastTick,0,.05); lastTick=now;
         if(now-lastScan >= .08) { RefreshWorld(); lastScan=now; }
         if(controls.Armed && Native.GetForegroundWindow()!=Handle) StopControl();
-        bool controlsEnabled=controls.Armed && !paused && !menuOpen && smokePath == null;
+        bool controlsEnabled=controls.Armed && !paused && !menuOpen && (smokePath == null || !smokeAutoClose);
         bool held=controls.JumpHeld;
         bool jump=controls.TakeJump();
         bool swing=controls.TakeAttack();
+        bool dash=controls.TakeDash();
+        if(abilitySmoke)
+        {
+            if(now>=.2 && !smokeDashStarted){abilities.StartDash(physics,1);smokeDashStarted=true;}
+            if(now>=.8 && !smokeDiveStarted)
+            {
+                physics.Reset(physics.X,Screen.FromPoint(new Point((int)physics.X,(int)physics.Y)).WorkingArea.Bottom-Physics.Height-250);
+                abilities.StartDive(physics,1);smokeDiveStarted=true;
+            }
+        }
         if(controlsEnabled && jump) pendingJump=true;
-        if(!controlsEnabled) pendingJump=false;
+        if(!controlsEnabled) pendingJump=pendingDive=false;
         int direction = controlsEnabled ? controls.Direction : 0;
         if(direction!=0) facing=direction;
-        if(controlsEnabled && swing && !dragging) attack.Start(now,facing);
+        if(controlsEnabled && dash && !dragging && abilities.StartDash(physics,facing,direction)) {attack.Cancel();pendingJump=pendingDive=false;facing=abilities.Facing;}
+        if(controlsEnabled && swing && !dragging)
+        {
+            if(physics.Grounded && pendingJump && !abilities.Busy) pendingDive=true;
+            else if(!physics.Grounded && abilities.StartDive(physics,facing)) {attack.Cancel();pendingJump=false;}
+            else if(physics.Grounded && !abilities.Busy) attack.Start(now,facing);
+        }
         if(!dragging)
         {
             accumulator += elapsed;
@@ -289,22 +334,26 @@ internal sealed class PetForm : Form
                 // Horizontal crossing works for adjacent displays; vertical limits use this monitor.
                 var area=new RectangleF(virtualBounds.Left,bounds.Top,virtualBounds.Width,bounds.Bottom-bounds.Top);
                 var edges=Desktop.EdgesAt(screen,center.Y);
-                physics.Step(1f/120,direction,pendingJump,colliders,area,controlsEnabled && held,edges,windowEdges);
+                abilities.Step(1f/120,physics,direction,pendingJump,colliders,area,controlsEnabled && held,edges,windowEdges,monsters.Monsters,now);
+                if(pendingDive) {if(abilities.StartDive(physics,facing))attack.Cancel();pendingDive=false;}
+                abilityArt.UpdateTrail(1f/120,physics,abilities);
                 pendingJump=false;
                 accumulator-=1d/120;
             }
             if(!Screen.AllScreens.Any(s=>s.Bounds.Contains(new Point((int)(physics.X+21),(int)(physics.Y+47))))) ResetPosition();
         }
-        else { accumulator=0; pendingJump=false; }
+        else { accumulator=0; pendingJump=pendingDive=false; }
+        if(abilities.Busy) facing=abilities.Facing;
         if(physics.AttachedSide!=0) facing=physics.AttachedSide;
         else if(physics.WallJumping && physics.VX!=0) facing=Math.Sign(physics.VX);
         monsters.Update(now,(float)elapsed,Lanes(),physics.Body,attack);
         if(smokePath!=null && monsters.Monsters.Count==0 && now<.2) monsters.Spawn(now,Lanes(),physics.Body);
         SyncMonsters();
         Present(); frames++;
+        if(smokePath!=null)smokePhases.Add(abilities.Phase.ToString());
         if(smokePath != null && smokeAutoClose && now>=3)
         {
-            File.WriteAllText(smokePath,JsonSerializer.Serialize(new { frames,windows=windows.Count,platforms=colliders.Count,physics.X,physics.Y,physics.Grounded,physics.AttachedSide,spriteFrames=art.FrameCount,animation=art.State,controlsActive=controls.Armed,foregroundIsPet=Native.GetForegroundWindow()==Handle,monsterWindows=monsterForms.Count,monitors=Screen.AllScreens.Select(s=>new {s.Bounds,s.WorkingArea}),layeredWindow=true },new JsonSerializerOptions { WriteIndented=true,IncludeFields=true }));
+            File.WriteAllText(smokePath,JsonSerializer.Serialize(new { frames,elapsedSeconds=now,observedFps=frames/now,windows=windows.Count,platforms=colliders.Count,physics.X,physics.Y,physics.Grounded,physics.AttachedSide,spriteFrames=art.FrameCount,abilityFrames=abilityArt.FrameCount,ability=abilities.Phase.ToString(),abilityPhases=smokePhases.Order().ToArray(),animation=art.State,controlsActive=controls.Armed,foregroundIsPet=Native.GetForegroundWindow()==Handle,monsterWindows=monsterForms.Count,monitors=Screen.AllScreens.Select(s=>new {s.Bounds,s.WorkingArea}),layeredWindow=true },new JsonSerializerOptions { WriteIndented=true,IncludeFields=true }));
             Close();
         }
     }
@@ -313,8 +362,9 @@ internal sealed class PetForm : Form
         double now=clock.Elapsed.TotalSeconds;
         bool attacking=attack.Visible(now);
         using var sprite=art.Render(now,physics,attacking?attack.Facing:facing,paused||!controls.Armed,debug,attacking?attack.Age(now):-1);
-        using var image=CombatArt.Hero(sprite,attack,now,controls.Armed&&!paused);
-        Native.Present(Handle,image,(int)Math.Round(physics.X)-KnightArt.BodyLeft-CombatArt.Margin,(int)Math.Round(physics.Y)-KnightArt.BodyTop);
+        using var normal=CombatArt.Hero(sprite,attack,now,controls.Armed&&!paused);
+        using var image=abilityArt.Compose(normal,physics,abilities,controls.Armed&&!paused,debug);
+        Native.Present(Handle,image,(int)Math.Round(physics.X)-KnightArt.BodyLeft-AbilityArt.HeroX,(int)Math.Round(physics.Y)-KnightArt.BodyTop-AbilityArt.HeroY);
     }
     void OnMouseDown(object? sender,MouseEventArgs e)
     {
@@ -328,7 +378,7 @@ internal sealed class PetForm : Form
     {
         if(!mousePressed) return;
         if(!dragging && Math.Abs(Cursor.Position.X-mouseOrigin.X)<SystemInformation.DragSize.Width/2 && Math.Abs(Cursor.Position.Y-mouseOrigin.Y)<SystemInformation.DragSize.Height/2) return;
-        dragging=true; attack.Cancel();
+        dragging=true; attack.Cancel();abilities.Cancel();abilityArt.ClearTrail();pendingJump=pendingDive=false;
         physics.Reset(Cursor.Position.X-dragOffset.X,Cursor.Position.Y-dragOffset.Y); Present();
     }
     void OnMouseUp(object? sender,MouseEventArgs e)
@@ -348,6 +398,7 @@ internal sealed class PetForm : Form
             hotkeys.Clear();
             tray.Visible=false; tray.Dispose(); menu.Dispose(); Icon?.Dispose();
             art.Dispose();
+            abilityArt.Dispose();
             foreach(var form in monsterForms.Values) form.Dispose();monsterForms.Clear();monsterArt.Dispose();
         }
         base.Dispose(disposing);

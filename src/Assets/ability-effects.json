@@ -1,0 +1,185 @@
+{
+  "dark_blast": [
+    {
+      "file": "quake_lvl2_blast_020000.png",
+      "left": -155,
+      "top": 159,
+      "width": 292,
+      "height": 100
+    },
+    {
+      "file": "quake_lvl2_blast_020001.png",
+      "left": -155,
+      "top": 124,
+      "width": 292,
+      "height": 138
+    },
+    {
+      "file": "quake_lvl2_blast_020002.png",
+      "left": -136,
+      "top": 22,
+      "width": 282,
+      "height": 239
+    },
+    {
+      "file": "quake_lvl2_blast_020003.png",
+      "left": -153,
+      "top": -31,
+      "width": 299,
+      "height": 288
+    },
+    {
+      "file": "quake_lvl2_blast_020004.png",
+      "left": -157,
+      "top": -35,
+      "width": 317,
+      "height": 290
+    },
+    {
+      "file": "quake_lvl2_blast_020005.png",
+      "left": -171,
+      "top": -33,
+      "width": 335,
+      "height": 284
+    },
+    {
+      "file": "quake_lvl2_blast_020006.png",
+      "left": -172,
+      "top": -53,
+      "width": 335,
+      "height": 292
+    },
+    {
+      "file": "quake_lvl2_blast_020007.png",
+      "left": -170,
+      "top": -40,
+      "width": 287,
+      "height": 243
+    },
+    {
+      "file": "quake_lvl2_blast_020008.png",
+      "left": -127,
+      "top": -44,
+      "width": 184,
+      "height": 201
+    },
+    {
+      "file": "quake_lvl2_blast_020009.png",
+      "left": -73,
+      "top": -33,
+      "width": 49,
+      "height": 78
+    }
+  ],
+  "dark_wave": [
+    {
+      "file": "quake_lvl_02_blast_010000.png",
+      "left": -147,
+      "top": 13,
+      "width": 239,
+      "height": 53
+    },
+    {
+      "file": "quake_lvl_02_blast_010001.png",
+      "left": -166,
+      "top": -1,
+      "width": 337,
+      "height": 67
+    },
+    {
+      "file": "quake_lvl_02_blast_010002.png",
+      "left": -178,
+      "top": -12,
+      "width": 353,
+      "height": 78
+    },
+    {
+      "file": "quake_lvl_02_blast_010003.png",
+      "left": -178,
+      "top": -18,
+      "width": 357,
+      "height": 84
+    },
+    {
+      "file": "quake_lvl_02_blast_010004.png",
+      "left": -178,
+      "top": -21,
+      "width": 351,
+      "height": 83
+    },
+    {
+      "file": "quake_lvl_02_blast_010005.png",
+      "left": -178,
+      "top": -22,
+      "width": 348,
+      "height": 70
+    }
+  ],
+  "dark_streak": [
+    {
+      "file": "quake_lvl2_dash_effect0000.png",
+      "left": -89,
+      "top": -225,
+      "width": 183,
+      "height": 443
+    },
+    {
+      "file": "quake_lvl2_dash_effect0001.png",
+      "left": -88,
+      "top": -225,
+      "width": 167,
+      "height": 446
+    },
+    {
+      "file": "quake_lvl2_dash_effect0002.png",
+      "left": -94,
+      "top": -224,
+      "width": 192,
+      "height": 440
+    }
+  ],
+  "dark_impact": [
+    {
+      "file": "quake_impact_020000.png",
+      "left": -49,
+      "top": -47,
+      "width": 87,
+      "height": 249
+    },
+    {
+      "file": "quake_impact_020001.png",
+      "left": -50,
+      "top": -208,
+      "width": 99,
+      "height": 416
+    },
+    {
+      "file": "quake_impact_020002.png",
+      "left": -43,
+      "top": -195,
+      "width": 83,
+      "height": 403
+    },
+    {
+      "file": "quake_impact_020003.png",
+      "left": -33,
+      "top": -208,
+      "width": 72,
+      "height": 392
+    },
+    {
+      "file": "quake_impact_020004.png",
+      "left": -20,
+      "top": -200,
+      "width": 61,
+      "height": 254
+    },
+    {
+      "file": "quake_impact_020005.png",
+      "left": -20,
+      "top": -187,
+      "width": 58,
+      "height": 214
+    }
+  ]
+}

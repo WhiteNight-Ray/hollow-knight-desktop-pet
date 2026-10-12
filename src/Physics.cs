@@ -49,6 +49,13 @@ internal sealed class Physics
         if(VY<0) VY=0;
     }
 
+    public void PrepareAbility()
+    {
+        if(AttachedSide!=0) ReleaseEdge();
+        VX=VY=0;rising=false;wallKickTime=coyote=jumpBuffer=riseTime=0;
+        attachCooldown=Math.Max(attachCooldown,.25f);
+    }
+
     private void HoldEdge()
     {
         VX = VY = 0; Grounded = false; Support = 0; rising = false; coyote = jumpBuffer = 0;
@@ -97,7 +104,7 @@ internal sealed class Physics
     }
 
     public void Step(float dt, int direction, bool jump, IReadOnlyList<Platform> platforms, RectangleF area,
-                     bool jumpHeld = true, ScreenEdges? edges = null, IReadOnlyList<WindowEdge>? walls = null)
+                     bool jumpHeld = true, ScreenEdges? edges = null, IReadOnlyList<WindowEdge>? walls = null,SpecialMotion? motion=null)
     {
         dt = Math.Clamp(dt, 0, 1f / 60);
         if (dt == 0) return;
@@ -150,10 +157,11 @@ internal sealed class Physics
             if (!p.Floor && p.Bounds.IntersectsWith(new RectangleF(X + .5f, Y + .5f, Width - 1, Height - 1)))
                 embedded.Add(p.Id);
 
-        coyote = Grounded ? .08f : Math.Max(0, coyote - dt);
-        jumpBuffer = jump ? .10f : Math.Max(0, jumpBuffer - dt);
+        coyote = motion.HasValue?0:Grounded ? .08f : Math.Max(0, coyote - dt);
+        jumpBuffer = motion.HasValue?0:jump ? .10f : Math.Max(0, jumpBuffer - dt);
         // The original controller sets horizontal velocity directly, including in air.
-        if (wallKickTime <= 0) VX = direction * RunSpeed;
+        if(motion.HasValue) {VX=motion.Value.Horizontal;rising=false;}
+        else if (wallKickTime <= 0) VX = direction * RunSpeed;
         if (jumpBuffer > 0 && coyote > 0)
         {
             VY = -JumpSpeed; rising = true; riseTime = 0;
@@ -174,13 +182,13 @@ internal sealed class Physics
             }
         }
         X = Math.Clamp(X, area.Left, Math.Max(area.Left, area.Right - Width));
-        if (edges.HasValue && TryAttach(edges.Value, direction))
+        if (!motion.HasValue && edges.HasValue && TryAttach(edges.Value, direction))
         {
             Y = Math.Clamp(Y, area.Top, Math.Max(area.Top, area.Bottom - Height));
             return;
         }
-        if (walls != null && TryAttachWindow(walls, direction, oldX, area)) return;
-        if (!jumpHeld && VY < 0 && riseTime >= MinRiseTime) { VY = 0; rising = false; }
+        if (!motion.HasValue && walls != null && TryAttachWindow(walls, direction, oldX, area)) return;
+        if (!motion.HasValue && !jumpHeld && VY < 0 && riseTime >= MinRiseTime) { VY = 0; rising = false; }
         if (rising)
         {
             // Hold upward speed for a bounded rise phase. Release after the minimum
@@ -190,7 +198,7 @@ internal sealed class Physics
             else rising = false;
             riseTime += dt;
         }
-        VY = Math.Min(VY + Gravity * dt, FallCap);
+        VY = motion is {FreezeVertical:true}?0:motion?.FallSpeed??Math.Min(VY + Gravity * dt, FallCap);
         float nextY = Y + VY * dt;
         Grounded = false; Support = 0;
         foreach (var p in platforms)
