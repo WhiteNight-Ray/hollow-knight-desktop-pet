@@ -27,7 +27,7 @@ internal static class AbilityPreview
             }
             using var image=new Bitmap(960,740,PixelFormat.Format32bppPArgb);using var g=Graphics.FromImage(image);
             g.Clear(Color.FromArgb(28,34,47));
-            g.DrawString("HOLLOW KNIGHT DESKTOP PET  /  v3.4",font,Brushes.White,22,12);
+            g.DrawString("HOLLOW KNIGHT DESKTOP PET  /  v3.4.1",font,Brushes.White,22,12);
             Draw(runner,dash,dashArt,45,"ENTER  /  SHADE DASH");
             Draw(diver,dive,diveArt,400,"AIR + J  /  DESCENDING DARK");
             image.Save(Path.Combine(directory,$"frame-{i:000}.png"),ImageFormat.Png);

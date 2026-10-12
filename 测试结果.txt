@@ -1,4 +1,4 @@
-HollowKnightPet v3.4.0 verification (2026-10-13)
+HollowKnightPet v3.4.1 verification
 Windows x64 self-contained EXE
 
 Logic tests: 73 PASS / 0 FAIL
@@ -114,19 +114,19 @@ PASS left Shift casts abyss shriek through native scan codes
 PASS ground shriek preserves floor position
 PASS monster spawn preserves active shriek
 PASS focus loss cancels abyss shriek
-PASS external process owns focus before activation 1 (expected=728202, actual=728202, armed=False)
+PASS external process owns focus before activation 1 (expected=3546120, actual=3546120, armed=False)
 PASS side button activates from external process 1
 PASS activation 1 does not deliver back-button messages to external window
-PASS external process owns focus before activation 2 (expected=728202, actual=728202, armed=False)
+PASS external process owns focus before activation 2 (expected=3546120, actual=3546120, armed=False)
 PASS side button activates from external process 2
 PASS activation 2 does not deliver back-button messages to external window
-PASS external process owns focus before activation 3 (expected=728202, actual=728202, armed=False)
+PASS external process owns focus before activation 3 (expected=3546120, actual=3546120, armed=False)
 PASS side button activates from external process 3
 PASS activation 3 does not deliver back-button messages to external window
-PASS external process owns focus before activation 4 (expected=728202, actual=728202, armed=False)
+PASS external process owns focus before activation 4 (expected=3546120, actual=3546120, armed=False)
 PASS side button activates from external process 4
 PASS activation 4 does not deliver back-button messages to external window
-PASS external process owns focus before activation 5 (expected=728202, actual=728202, armed=False)
+PASS external process owns focus before activation 5 (expected=3546120, actual=3546120, armed=False)
 PASS side button activates from external process 5
 PASS activation 5 does not deliver back-button messages to external window
 PASS spell area passes clicks through to another process
@@ -136,10 +136,10 @@ PASS disabled shortcut passes side-button down and up to external window
 Four-second native ability rendering smoke test:
 {
   "frames": 250,
-  "elapsedSeconds": 4.006825,
-  "observedFps": 62.39354102063354,
-  "windows": 2,
-  "platforms": 3,
+  "elapsedSeconds": 4.0151707,
+  "observedFps": 62.26385343965576,
+  "windows": 1,
+  "platforms": 2,
   "X": 1580,
   "Y": 1274,
   "Grounded": true,
@@ -212,4 +212,113 @@ Four-second native ability rendering smoke test:
   "layeredWindow": true
 }
 
-Visual QA: checked original Monarch Wings animation, abyss shriek windup / explosion / recovery, dash and descending dark; both facings remain inside the transparent canvas. Preview GIF exports use 30 FPS; live physics uses 120 Hz.
+Visual regression against v3.4.0 at 60 FPS:
+{
+  "before": {
+    "differences": [
+      [
+        49,
+        4.5711
+      ],
+      [
+        50,
+        0.0
+      ],
+      [
+        51,
+        7.2647
+      ],
+      [
+        52,
+        0.0645
+      ],
+      [
+        53,
+        12.7986
+      ],
+      [
+        54,
+        0.2686
+      ],
+      [
+        55,
+        0.0
+      ],
+      [
+        56,
+        17.5117
+      ],
+      [
+        57,
+        0.0
+      ],
+      [
+        58,
+        16.8796
+      ]
+    ],
+    "maximum": 17.5117
+  },
+  "after": {
+    "differences": [
+      [
+        49,
+        2.6135
+      ],
+      [
+        50,
+        3.3022
+      ],
+      [
+        51,
+        13.4865
+      ],
+      [
+        52,
+        7.9159
+      ],
+      [
+        53,
+        13.9982
+      ],
+      [
+        54,
+        9.9152
+      ],
+      [
+        55,
+        5.6247
+      ],
+      [
+        56,
+        9.1866
+      ],
+      [
+        57,
+        4.985
+      ],
+      [
+        58,
+        0.1011
+      ]
+    ],
+    "maximum": 13.9982
+  },
+  "changedDiveFrames": [
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58
+  ],
+  "unchangedDashFrames": 108
+}
+
+Visual QA: inspected registered recovery poses, progressive shade-to-normal return, grounded contact and the final idle handoff. Only dive preview frames 47-58 differ; all 108 dash frames are pixel-identical. Pixel difference measurements describe this fixed preview, not a general perceptual score.

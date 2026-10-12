@@ -1,5 +1,6 @@
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace HollowKnightPet;
@@ -8,6 +9,10 @@ internal sealed class AbilityArt : IDisposable
 {
     public const int Width=720,Height=480,HeroX=294,HeroY=230;
     const float SpriteScale=.88f;
+    // These times are in the original clip's clock; the ability keeps its
+    // existing 1.1x playback and recovery duration.
+    static readonly float[] DiveReturnTimes=[.375f,.415f,.45f,.475f,.515f,.58f];
+    static readonly PointF[] DiveReturnEyes=[new(173.3f,164),new(173,165.8f),new(173.4f,163.8f),new(162,149),new(163,127),new(165,123)];
     readonly Dictionary<string,Bitmap[]> sprites=[];
     readonly Dictionary<string,EffectFrame[]> effects=[];
     readonly List<(float X,float Y,float Age,int Frame,int Facing)> trail=[];
@@ -106,7 +111,7 @@ internal sealed class AbilityArt : IDisposable
                 case AbilityPhase.DiveFall:
                     DrawSprite(g,"dark_dive",1+(int)(state.Age*20)%3,center,feet,state.Facing);break;
                 case AbilityPhase.DiveImpact:
-                    DrawSprite(g,"dark_dive",Math.Min(5+(int)(impactAge*24),18),center,feet,state.Facing);break;
+                    DrawDiveReturn(g,normal,impactAge,center,feet,state.Facing);break;
                 case AbilityPhase.ShriekWindup:
                     DrawSprite(g,"shriek_pose",Math.Min((int)(state.Age*20),1),center,feet,state.Facing);break;
                 case AbilityPhase.ShriekBurst:
@@ -126,6 +131,74 @@ internal sealed class AbilityArt : IDisposable
     void DrawSprite(Graphics g,string clip,int index,float x,float feet,int facing,float alpha=1)
     {
         var frame=sprites[clip][Math.Clamp(index,0,sprites[clip].Length-1)];
+        DrawSpriteFrame(g,frame,clip,x,feet,facing,alpha);
+    }
+    void DrawDiveReturn(Graphics g,Bitmap normal,float age,float x,float feet,int facing)
+    {
+        if(age<DiveReturnTimes[0])
+        {
+            DrawSprite(g,"dark_dive",5+(int)(age*24),x,feet,facing);return;
+        }
+        int segment=0;
+        while(segment<DiveReturnTimes.Length-2 && age>=DiveReturnTimes[segment+1])segment++;
+        float progress=Math.Clamp((age-DiveReturnTimes[segment])/(DiveReturnTimes[segment+1]-DiveReturnTimes[segment]),0,1);
+        progress=progress*progress*(3-2*progress);
+        int index=14+segment;
+        // Register the eye positions while the body rises, rather than fading
+        // between two faces at different heights. Keep the ground contact fixed.
+        var eye=DiveReturnEyes[segment];var nextEye=DiveReturnEyes[segment+1];
+        float dx=(nextEye.X-eye.X)*SpriteScale*-facing,dy=(nextEye.Y-eye.Y)*SpriteScale;
+        const int top=60;
+        using var from=new Bitmap(normal.Width,normal.Height+top,PixelFormat.Format32bppPArgb);
+        using var to=new Bitmap(from.Width,from.Height,PixelFormat.Format32bppPArgb);
+        using(var layer=Graphics.FromImage(from))
+        {
+            Configure(layer);
+            DrawSprite(layer,"dark_dive",index,x-HeroX+CombatArt.Margin+dx*progress,feet-HeroY+top+dy*progress,facing);
+        }
+        using(var layer=Graphics.FromImage(to))
+        {
+            Configure(layer);
+            if(index<18)
+                DrawSprite(layer,"dark_dive",index+1,x-HeroX+CombatArt.Margin-dx*(1-progress),feet-HeroY+top-dy*(1-progress),facing);
+            else
+                Draw(layer,normal,new RectangleF(-dx*(1-progress),top-dy*(1-progress),normal.Width,normal.Height),1);
+        }
+        using var frame=Blend(from,to,progress);
+        var clip=g.Save();g.SetClip(new RectangleF(0,0,Width,feet+1));
+        g.DrawImageUnscaled(frame,HeroX-CombatArt.Margin,HeroY-top);g.Restore(clip);
+        void Configure(Graphics layer)
+        {layer.InterpolationMode=g.InterpolationMode;layer.PixelOffsetMode=g.PixelOffsetMode;layer.SmoothingMode=g.SmoothingMode;}
+    }
+    static Bitmap Blend(Bitmap from,Bitmap to,float progress)
+    {
+        var result=new Bitmap(from.Width,from.Height,PixelFormat.Format32bppPArgb);
+        var bounds=new Rectangle(0,0,from.Width,from.Height);
+        BitmapData? first=null,second=null,output=null;
+        try
+        {
+            first=from.LockBits(bounds,ImageLockMode.ReadOnly,PixelFormat.Format32bppPArgb);
+            second=to.LockBits(bounds,ImageLockMode.ReadOnly,PixelFormat.Format32bppPArgb);
+            output=result.LockBits(bounds,ImageLockMode.WriteOnly,PixelFormat.Format32bppPArgb);
+            int bytes=first.Stride*from.Height;
+            var a=new byte[bytes];var b=new byte[bytes];
+            Marshal.Copy(first.Scan0,a,0,bytes);Marshal.Copy(second.Scan0,b,0,bytes);
+            int weight=Math.Clamp((int)Math.Round(progress*256),0,256);
+            // Interpolate premultiplied color and alpha together. Drawing two
+            // translucent sprites over each other would make the body fade out.
+            for(int i=0;i<bytes;i++)a[i]=(byte)((a[i]*(256-weight)+b[i]*weight+128)>>8);
+            Marshal.Copy(a,0,output.Scan0,bytes);
+        }
+        finally
+        {
+            if(first!=null)from.UnlockBits(first);
+            if(second!=null)to.UnlockBits(second);
+            if(output!=null)result.UnlockBits(output);
+        }
+        return result;
+    }
+    static void DrawSpriteFrame(Graphics g,Bitmap frame,string clip,float x,float feet,int facing,float alpha)
+    {
         var transform=g.Save();g.TranslateTransform(x,feet);g.ScaleTransform(-facing,1);
         float anchorX=clip=="shadow_trail"?171:174.5f,anchorY=clip=="shadow_trail"?143:183;
         Draw(g,frame,new RectangleF(-anchorX*SpriteScale,-anchorY*SpriteScale,frame.Width*SpriteScale,frame.Height*SpriteScale),alpha);
