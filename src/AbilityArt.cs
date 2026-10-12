@@ -23,7 +23,7 @@ internal sealed class AbilityArt : IDisposable
     public AbilityArt()
     {
         var assembly=typeof(AbilityArt).Assembly;
-        foreach(string clip in new[] {"shadow_dash","quake","dark_dive","shadow_trail"})
+        foreach(string clip in new[] {"shadow_dash","quake","dark_dive","shadow_trail","double_jump","shriek_pose"})
             sprites[clip]=assembly.GetManifestResourceNames().Where(n=>n.Contains(".Assets."+clip+".") && n.EndsWith(".png"))
                 .Order(StringComparer.Ordinal).Select(Read).ToArray();
         using var manifest=assembly.GetManifestResourceStream("HollowKnightPet.Assets.ability-effects.json")!;
@@ -59,12 +59,13 @@ internal sealed class AbilityArt : IDisposable
         }
     }
     const float DashVisualDuration=AbilityState.DashDuration;
-    public Bitmap Compose(Bitmap normal,Physics p,AbilityState state,bool active,bool debug)
+    public Bitmap Compose(Bitmap normal,Physics p,AbilityState state,bool active,bool debug,int facing=1)
     {
         var canvas=new Bitmap(Width,Height,PixelFormat.Format32bppPArgb);
         using var g=Graphics.FromImage(canvas);
         g.InterpolationMode=InterpolationMode.HighQualityBicubic;g.PixelOffsetMode=PixelOffsetMode.HighQuality;g.SmoothingMode=SmoothingMode.AntiAlias;
         float center=HeroX+66,feet=HeroY+123;
+        float impactAge=state.Age*AbilityState.DiveImpactPlaybackRate;
         foreach(var t in trail)
             DrawSprite(g,"shadow_dash",t.Frame,center+t.X-p.X,feet+t.Y-p.Y,t.Facing,.32f*(1-t.Age/.14f));
         if(state.Phase==AbilityPhase.DiveFall)
@@ -72,12 +73,25 @@ internal sealed class AbilityArt : IDisposable
         if(state.Phase==AbilityPhase.DiveImpact)
         {
             float x=center+state.ImpactX-(p.X+Physics.Width/2),y=feet+state.ImpactY-(p.Y+Physics.Height);
-            float fade=Math.Clamp((AbilityState.DiveRecovery-state.Age)/.12f,0,1);
-            DrawEffect(g,"dark_wave",(int)(state.Age*24),x,y-66*1.05f,1.05f,fade);
-            DrawEffect(g,"dark_blast",(int)(Math.Max(0,state.Age-.06f)*20),x,y-262*.78f,.78f,fade);
-            if(state.Age<.3f) DrawEffect(g,"dark_impact",(int)(state.Age*24),x,y-208*.40f,.40f,fade);
+            float fade=Math.Clamp((AbilityState.DiveRecovery-state.Age)*AbilityState.DiveImpactPlaybackRate/.12f,0,1);
+            DrawEffect(g,"dark_wave",(int)(impactAge*24),x,y-66*1.05f,1.05f,fade);
+            DrawEffect(g,"dark_blast",(int)(Math.Max(0,impactAge-.06f)*20),x,y-262*.78f,.78f,fade);
+            if(impactAge<.3f) DrawEffect(g,"dark_impact",(int)(impactAge*24),x,y-208*.40f,.40f,fade);
         }
-        if(!state.Busy) g.DrawImageUnscaled(normal,HeroX-CombatArt.Margin,HeroY);
+        if(state.Phase is AbilityPhase.ShriekBurst or AbilityPhase.ShriekRecovery)
+        {
+            float age=state.Phase==AbilityPhase.ShriekBurst?state.Age:AbilityState.ShriekBurst+state.Age;
+            float fade=state.Phase==AbilityPhase.ShriekRecovery?Math.Clamp(1-state.Age/AbilityState.ShriekRecovery,0,1):1;
+            DrawEffect(g,"shriek_base",Math.Min((int)(age*15),9),center,feet-87*.8f,.8f,fade);
+            DrawEffect(g,"shriek_blast",Math.Min((int)(age*20),12),center,feet-140,.9f,fade);
+        }
+        if(!state.Busy && p.DoubleJumping)
+        {
+            DrawEffect(g,"double_wings",(int)(p.DoubleJumpAge*16),center,feet-65,.55f,1);
+            DrawSprite(g,"double_jump",(int)(p.DoubleJumpAge*16),center,feet,facing);
+            DrawMarkers();
+        }
+        else if(!state.Busy) g.DrawImageUnscaled(normal,HeroX-CombatArt.Margin,HeroY);
         else
         {
             switch(state.Phase)
@@ -92,12 +106,22 @@ internal sealed class AbilityArt : IDisposable
                 case AbilityPhase.DiveFall:
                     DrawSprite(g,"dark_dive",1+(int)(state.Age*20)%3,center,feet,state.Facing);break;
                 case AbilityPhase.DiveImpact:
-                    DrawSprite(g,"dark_dive",Math.Min(5+(int)(state.Age*24),18),center,feet,state.Facing);break;
+                    DrawSprite(g,"dark_dive",Math.Min(5+(int)(impactAge*24),18),center,feet,state.Facing);break;
+                case AbilityPhase.ShriekWindup:
+                    DrawSprite(g,"shriek_pose",Math.Min((int)(state.Age*20),1),center,feet,state.Facing);break;
+                case AbilityPhase.ShriekBurst:
+                    DrawSprite(g,"shriek_pose",2+(int)(state.Age*20)%6,center,feet,state.Facing);break;
+                case AbilityPhase.ShriekRecovery:
+                    DrawSprite(g,"shriek_pose",8,center,feet,state.Facing);break;
             }
+            DrawMarkers();
+        }
+        return canvas;
+        void DrawMarkers()
+        {
             if(active) {using var dot=new SolidBrush(Color.FromArgb(215,108,238,208));g.FillEllipse(dot,HeroX+105,HeroY+20,7,7);}
             if(debug) {using var pen=new Pen(Color.FromArgb(210,87,233,194));g.DrawRectangle(pen,HeroX+KnightArt.BodyLeft,HeroY+KnightArt.BodyTop,Physics.Width,Physics.Height);}
         }
-        return canvas;
     }
     void DrawSprite(Graphics g,string clip,int index,float x,float feet,int facing,float alpha=1)
     {

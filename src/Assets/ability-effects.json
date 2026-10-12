@@ -181,5 +181,214 @@
       "width": 58,
       "height": 214
     }
+  ],
+  "shriek_blast": [
+    {
+      "file": "scream_blast_level_020000.png",
+      "left": -23,
+      "top": 42,
+      "width": 42,
+      "height": 95
+    },
+    {
+      "file": "scream_blast_level_020001.png",
+      "left": -96,
+      "top": -122,
+      "width": 216,
+      "height": 258
+    },
+    {
+      "file": "scream_blast_level_020002.png",
+      "left": -142,
+      "top": -138,
+      "width": 286,
+      "height": 276
+    },
+    {
+      "file": "scream_blast_level_020003.png",
+      "left": -145,
+      "top": -138,
+      "width": 299,
+      "height": 278
+    },
+    {
+      "file": "scream_blast_level_020004.png",
+      "left": -142,
+      "top": -138,
+      "width": 299,
+      "height": 275
+    },
+    {
+      "file": "scream_blast_level_020005.png",
+      "left": -142,
+      "top": -138,
+      "width": 300,
+      "height": 277
+    },
+    {
+      "file": "scream_blast_level_020006.png",
+      "left": -143,
+      "top": -138,
+      "width": 302,
+      "height": 276
+    },
+    {
+      "file": "scream_blast_level_020007.png",
+      "left": -146,
+      "top": -138,
+      "width": 305,
+      "height": 276
+    },
+    {
+      "file": "scream_blast_level_020008.png",
+      "left": -142,
+      "top": -138,
+      "width": 300,
+      "height": 276
+    },
+    {
+      "file": "scream_blast_level_020009.png",
+      "left": -141,
+      "top": -135,
+      "width": 300,
+      "height": 272
+    },
+    {
+      "file": "scream_blast_level_020010.png",
+      "left": -139,
+      "top": -131,
+      "width": 278,
+      "height": 266
+    },
+    {
+      "file": "scream_blast_level_020011.png",
+      "left": -125,
+      "top": -132,
+      "width": 261,
+      "height": 264
+    },
+    {
+      "file": "scream_blast_level_020012.png",
+      "left": -89,
+      "top": 13,
+      "width": 26,
+      "height": 29
+    }
+  ],
+  "shriek_base": [
+    {
+      "file": "scream_ground_blast_lvl_020000.png",
+      "left": -190,
+      "top": -56,
+      "width": 363,
+      "height": 143
+    },
+    {
+      "file": "scream_ground_blast_lvl_020001.png",
+      "left": -193,
+      "top": -53,
+      "width": 379,
+      "height": 140
+    },
+    {
+      "file": "scream_ground_blast_lvl_020002.png",
+      "left": -204,
+      "top": -27,
+      "width": 408,
+      "height": 108
+    },
+    {
+      "file": "scream_ground_blast_lvl_020003.png",
+      "left": -197,
+      "top": -21,
+      "width": 396,
+      "height": 108
+    },
+    {
+      "file": "scream_ground_blast_lvl_020004.png",
+      "left": -193,
+      "top": -31,
+      "width": 379,
+      "height": 118
+    },
+    {
+      "file": "scream_ground_blast_lvl_020005.png",
+      "left": -204,
+      "top": -36,
+      "width": 408,
+      "height": 117
+    },
+    {
+      "file": "scream_ground_blast_lvl_020006.png",
+      "left": -197,
+      "top": -42,
+      "width": 396,
+      "height": 123
+    },
+    {
+      "file": "scream_ground_blast_lvl_020007.png",
+      "left": -175,
+      "top": -33,
+      "width": 342,
+      "height": 110
+    },
+    {
+      "file": "scream_ground_blast_lvl_020008.png",
+      "left": -166,
+      "top": -33,
+      "width": 320,
+      "height": 104
+    },
+    {
+      "file": "scream_ground_blast_lvl_020009.png",
+      "left": -157,
+      "top": -8,
+      "width": 132,
+      "height": 68
+    }
+  ],
+  "double_wings": [
+    {
+      "file": "double_jump_wings0000.png",
+      "left": -68,
+      "top": -178,
+      "width": 131,
+      "height": 196
+    },
+    {
+      "file": "double_jump_wings0001.png",
+      "left": -114,
+      "top": -163,
+      "width": 254,
+      "height": 271
+    },
+    {
+      "file": "double_jump_wings0002.png",
+      "left": -125,
+      "top": -90,
+      "width": 288,
+      "height": 268
+    },
+    {
+      "file": "double_jump_wings0003.png",
+      "left": -174,
+      "top": -100,
+      "width": 359,
+      "height": 197
+    },
+    {
+      "file": "double_jump_wings0004.png",
+      "left": -141,
+      "top": -160,
+      "width": 275,
+      "height": 169
+    },
+    {
+      "file": "double_jump_wings0005.png",
+      "left": -105,
+      "top": -149,
+      "width": 158,
+      "height": 140
+    }
   ]
 }

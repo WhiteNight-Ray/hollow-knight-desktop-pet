@@ -18,7 +18,8 @@ parser.add_argument('output', type=Path)
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=True)
 mapping = {'shadow_dash': 'shadow_dash', 'quake': 'quake',
-           'quake_cast_level_02_shadow': 'dark_dive', '_ effects/shadow_dash_trail': 'shadow_trail'}
+           'quake_cast_level_02_shadow': 'dark_dive', '_ effects/shadow_dash_trail': 'shadow_trail',
+           'double_jump_v2': 'double_jump', 'scream_cast_lvl_02': 'shriek_pose'}
 with ZipFile(args.sprite_zip) as archive:
     for source, target in mapping.items():
         folder = args.output / target
@@ -32,9 +33,14 @@ objects = {obj.path_id: obj for obj in environment.objects}
 collection = objects[8982384931531801455].read_typetree()
 atlas = objects[collection['textures'][0]['m_PathID']].read().image.convert('RGBA')
 prefixes = {'quake_lvl2_blast_02': 'dark_blast', 'quake_lvl_02_blast_01': 'dark_wave',
-            'quake_lvl2_dash_effect': 'dark_streak', 'quake_impact_02': 'dark_impact'}
+            'quake_lvl2_dash_effect': 'dark_streak', 'quake_impact_02': 'dark_impact',
+            'scream_blast_level_02': 'shriek_blast', 'scream_ground_blast_lvl_02': 'shriek_base',
+            'double_jump_wings': 'double_wings'}
 manifest = {}
 for prefix, clip in prefixes.items():
+    collection_id = 6293209453266713084 if clip == 'double_wings' else 8982384931531801455
+    collection = objects[collection_id].read_typetree()
+    atlas = objects[collection['textures'][0]['m_PathID']].read().image.convert('RGBA')
     folder = args.output / clip
     folder.mkdir(exist_ok=True)
     frames = []

@@ -65,7 +65,7 @@ internal static class FocusTests
         Press(0x4A,0);
         check(pet.NailVisible && pet.CurrentAbility==AbilityPhase.None,"ground J keeps ordinary nail attack");
         Pump(300);float oldX=pet.Motion.X;Press(0x0D,0);
-        check(pet.Motion.X>oldX+60 && pet.Motion.X<=oldX+200.1f && pet.DashCooldownRemaining>0,"Enter starts shade dash through actual keyboard messages");
+        check(pet.Motion.X>oldX+60 && pet.Motion.X<=oldX+300.1f && pet.DashCooldownRemaining>0,"Enter starts shade dash through actual keyboard messages");
         other.Activate();Native.SetForegroundWindow(other.Handle);Pump();
         check(!pet.ControlsActive && pet.CurrentAbility==AbilityPhase.None,"focus loss cancels shade dash");
         pet.Motion.Reset(area.Left+600,area.Bottom-Physics.Height);pet.Motion.Grounded=true;SideClick(1);
@@ -75,16 +75,34 @@ internal static class FocusTests
         check(pet.CurrentAbility==AbilityPhase.DiveImpact && pet.Motion.Grounded,"descending dark reaches actual desktop floor");
         other.Activate();Native.SetForegroundWindow(other.Handle);Pump();
         check(pet.CurrentAbility==AbilityPhase.None && !pet.ControlsActive,"focus loss cancels dive recovery");
+        pet.Motion.Reset(area.Left+600,area.Bottom-Physics.Height);pet.Motion.Grounded=true;SideClick(1);
+        Press(0x20,0);Press(0x20,0);
+        check(!pet.Motion.AirJumpAvailable && pet.Motion.DoubleJumping,"second physical Space press triggers actual double jump");
+        other.Activate();Native.SetForegroundWindow(other.Handle);Pump();
+        check(!pet.ControlsActive && !pet.Motion.DoubleJumping,"focus loss stops wing animation without restoring jump charge");
+        pet.Motion.Reset(area.Left+600,area.Bottom-Physics.Height);pet.Motion.Grounded=true;SideClick(1);
+        Press(0xA1,0,0x36);
+        check(pet.CurrentAbility==AbilityPhase.None && pet.ShriekCooldownRemaining==0,"right Shift does not cast abyss shriek");
+        float castY=pet.Motion.Y;Press(0xA0,0,0x2a);
+        check(pet.CurrentAbility is AbilityPhase.ShriekWindup or AbilityPhase.ShriekBurst && pet.ShriekCooldownRemaining>0,"left Shift casts abyss shriek through native scan codes");
+        check(pet.Motion.Y==castY,"ground shriek preserves floor position");
+        using(var monsterArt=new MonsterArt())using(var monsterForm=new MonsterForm())
+        {
+            monsterForm.Present(new Monster {X=700,Y=area.Bottom-Monster.Height},.1,monsterArt);monsterForm.ShowPassive();Pump();
+            check(pet.ControlsActive && Native.GetForegroundWindow()==pet.Handle && pet.CurrentAbility!=AbilityPhase.None,"monster spawn preserves active shriek");
+        }
+        other.Activate();Native.SetForegroundWindow(other.Handle);Pump();
+        check(pet.CurrentAbility==AbilityPhase.None && !pet.ControlsActive,"focus loss cancels abyss shriek");
     }
     static void Pump(int milliseconds=80)
     {
         var clock=System.Diagnostics.Stopwatch.StartNew();
         while(clock.ElapsedMilliseconds<milliseconds) {Application.DoEvents();Thread.Sleep(1);}
     }
-    static void Press(byte key,uint flags)
+    static void Press(byte key,uint flags,byte scan=0)
     {
-        keybd_event(key,0,flags,0);
-        try {Pump();} finally {keybd_event(key,0,flags|2,0);Pump();}
+        keybd_event(key,scan,flags,0);
+        try {Pump();} finally {keybd_event(key,scan,flags|2,0);Pump();}
     }
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     static extern void keybd_event(byte key,byte scan,uint flags,nuint extra);

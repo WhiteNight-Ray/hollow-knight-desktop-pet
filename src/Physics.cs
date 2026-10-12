@@ -24,6 +24,9 @@ internal sealed class Physics
     public int AttachedSide { get; private set; }
     public nint AttachedWindow { get; private set; }
     public bool WallJumping => wallKickTime > 0;
+    public bool AirJumpAvailable {get;private set;}=true;
+    public float DoubleJumpAge {get;private set;}=float.PositiveInfinity;
+    public bool DoubleJumping=>!Grounded && DoubleJumpAge<.5f;
     public RectangleF Body => new(X, Y, Width, Height);
     private readonly HashSet<nint> embedded = [];
     private float coyote, jumpBuffer;
@@ -36,6 +39,7 @@ internal sealed class Physics
         X = x; Y = y; VX = VY = 0; Support = 0; Grounded = false;
         coyote = jumpBuffer = riseTime = attachCooldown = wallKickTime = 0;
         rising = false; AttachedSide = 0; AttachedWindow = 0; embedded.Clear();
+        AirJumpAvailable=true;DoubleJumpAge=float.PositiveInfinity;
     }
 
     public void ReleaseEdge()
@@ -46,6 +50,7 @@ internal sealed class Physics
     public void CancelInput()
     {
         VX=0; jumpBuffer=0; wallKickTime=0; rising=false;
+        DoubleJumpAge=float.PositiveInfinity;
         if(VY<0) VY=0;
     }
 
@@ -53,12 +58,14 @@ internal sealed class Physics
     {
         if(AttachedSide!=0) ReleaseEdge();
         VX=VY=0;rising=false;wallKickTime=coyote=jumpBuffer=riseTime=0;
+        DoubleJumpAge=float.PositiveInfinity;
         attachCooldown=Math.Max(attachCooldown,.25f);
     }
 
     private void HoldEdge()
     {
         VX = VY = 0; Grounded = false; Support = 0; rising = false; coyote = jumpBuffer = 0;
+        AirJumpAvailable=true;DoubleJumpAge=float.PositiveInfinity;
     }
 
     private static float WindowAttachX(WindowEdge edge) => edge.Side > 0 ? edge.X - Width - WindowGap : edge.X + WindowGap;
@@ -108,6 +115,8 @@ internal sealed class Physics
     {
         dt = Math.Clamp(dt, 0, 1f / 60);
         if (dt == 0) return;
+        if(float.IsFinite(DoubleJumpAge))DoubleJumpAge+=dt;
+        if(Grounded){AirJumpAvailable=true;DoubleJumpAge=float.PositiveInfinity;}
         attachCooldown = Math.Max(0, attachCooldown - dt);
         wallKickTime = Math.Max(0, wallKickTime - dt);
         if (AttachedSide != 0)
@@ -167,6 +176,12 @@ internal sealed class Physics
             VY = -JumpSpeed; rising = true; riseTime = 0;
             Grounded = false; Support = 0; coyote = jumpBuffer = 0;
         }
+        else if(jump && !motion.HasValue && !Grounded && AirJumpAvailable)
+        {
+            AirJumpAvailable=false;DoubleJumpAge=0;VY=-JumpSpeed;
+            rising=true;riseTime=0;wallKickTime=0;jumpBuffer=coyote=0;
+            attachCooldown=Math.Max(attachCooldown,.25f);
+        }
         float oldX = X, oldY = Y;
         X += VX * dt;
         if (SolidWindows)
@@ -218,5 +233,6 @@ internal sealed class Physics
         if (Y < area.Top) { Y = area.Top; VY = Math.Max(0, VY); rising = false; }
         if (Y + Height > area.Bottom)
         { Y = area.Bottom - Height; VY = 0; Grounded = true; Support = 0; rising = false; }
+        if(Grounded){AirJumpAvailable=true;DoubleJumpAge=float.PositiveInfinity;}
     }
 }

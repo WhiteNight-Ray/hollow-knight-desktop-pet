@@ -1,7 +1,7 @@
-HollowKnightPet v3.3.0 verification (2026-10-13)
+HollowKnightPet v3.4.0 verification (2026-10-13)
 Windows x64 self-contained EXE
 
-Logic tests: 65 PASS / 0 FAIL
+Logic tests: 73 PASS / 0 FAIL
 PASS falls onto taskbar without penetration
 PASS jump rises then lands
 PASS one way roof can be reached from below
@@ -52,7 +52,7 @@ PASS running distance increases by fifteen percent from v3
 PASS selected side button consumes complete click and triggers once
 PASS unselected and disabled side buttons pass through
 PASS side button settings preserve old configurations and validate
-PASS shade dash travels 200 pixels in .25 seconds and preserves aerial height
+PASS shade dash travels 300 pixels in .25 seconds and preserves aerial height
 PASS shade dash honors facing direction and cooldown
 PASS shade dash collides with solid window sides without tunneling
 PASS shade dash clamps at desktop edge without automatic attachment
@@ -60,15 +60,24 @@ PASS shade dash leaves an attached wall in the away direction
 PASS shade dash hits each monster once with a swept hitbox
 PASS descending dark requires air and suspends motion for windup
 PASS descending dark lands on nearest window roof at high fall speed
-PASS descending dark reaches taskbar and finishes recovery
+PASS descending dark reaches taskbar and recovers at 1.1 times playback speed
 PASS descending dark deals fall and radial impact damage once per phase
 PASS ability interruption restores ordinary motion and keeps cooldown
 PASS special action priority prevents conflicting casts
 PASS Enter produces one dash request and focus loss clears it
 PASS all special animation phases and directions fit a transparent canvas
+PASS double jump reverses falling velocity once and blocks a third airborne jump
+PASS ordinary ground jump preserves the second jump and increases reachable height
+PASS landing on a window roof refreshes the second jump
+PASS wall attachment refreshes wings and wall kick leaves them available
+PASS focus loss and air spells cannot replenish an already spent second jump
+PASS abyss shriek freezes air motion and recovers through all phases
+PASS abyss shriek deals four upward pulses and excludes distant enemies
+PASS abyss shriek respects cooldown cancels on blur and excludes conflicting casts
+PASS left Shift requests shriek once while right Shift and inactive keys do not
 PASS ability PNG decoding keeps native pixel scale on high DPI displays
 
-Native window / input checks: 47 PASS / 0 FAIL
+Native window / input checks: 54 PASS / 0 FAIL
 PASS test host acquired foreground
 PASS monster 1 visible
 PASS spawn 1 preserves foreground and held input
@@ -98,38 +107,45 @@ PASS Space puts actual pet in air
 PASS air J starts descending dark through actual keyboard messages
 PASS descending dark reaches actual desktop floor
 PASS focus loss cancels dive recovery
-PASS external process owns focus before activation 1 (expected=3415166, actual=3415166, armed=False)
+PASS second physical Space press triggers actual double jump
+PASS focus loss stops wing animation without restoring jump charge
+PASS right Shift does not cast abyss shriek
+PASS left Shift casts abyss shriek through native scan codes
+PASS ground shriek preserves floor position
+PASS monster spawn preserves active shriek
+PASS focus loss cancels abyss shriek
+PASS external process owns focus before activation 1 (expected=728202, actual=728202, armed=False)
 PASS side button activates from external process 1
 PASS activation 1 does not deliver back-button messages to external window
-PASS external process owns focus before activation 2 (expected=3415166, actual=3415166, armed=False)
+PASS external process owns focus before activation 2 (expected=728202, actual=728202, armed=False)
 PASS side button activates from external process 2
 PASS activation 2 does not deliver back-button messages to external window
-PASS external process owns focus before activation 3 (expected=3415166, actual=3415166, armed=False)
+PASS external process owns focus before activation 3 (expected=728202, actual=728202, armed=False)
 PASS side button activates from external process 3
 PASS activation 3 does not deliver back-button messages to external window
-PASS external process owns focus before activation 4 (expected=3415166, actual=3415166, armed=False)
+PASS external process owns focus before activation 4 (expected=728202, actual=728202, armed=False)
 PASS side button activates from external process 4
 PASS activation 4 does not deliver back-button messages to external window
-PASS external process owns focus before activation 5 (expected=3415166, actual=3415166, armed=False)
+PASS external process owns focus before activation 5 (expected=728202, actual=728202, armed=False)
 PASS side button activates from external process 5
 PASS activation 5 does not deliver back-button messages to external window
 PASS spell area passes clicks through to another process
 PASS disabled shortcut preserves external focus
 PASS disabled shortcut passes side-button down and up to external window
 
-Three-second native ability rendering smoke test:
+Four-second native ability rendering smoke test:
 {
-  "frames": 185,
-  "elapsedSeconds": 3.0041681,
-  "observedFps": 61.581107928015086,
-  "windows": 1,
-  "platforms": 2,
-  "X": 1479.9988,
+  "frames": 250,
+  "elapsedSeconds": 4.006825,
+  "observedFps": 62.39354102063354,
+  "windows": 2,
+  "platforms": 3,
+  "X": 1580,
   "Y": 1274,
   "Grounded": true,
   "AttachedSide": 0,
   "spriteFrames": 76,
-  "abilityFrames": 82,
+  "abilityFrames": 128,
   "ability": "None",
   "abilityPhases": [
     "DashRecovery",
@@ -137,8 +153,12 @@ Three-second native ability rendering smoke test:
     "DiveImpact",
     "DiveWindup",
     "None",
-    "ShadowDash"
+    "ShadowDash",
+    "ShriekBurst",
+    "ShriekRecovery",
+    "ShriekWindup"
   ],
+  "doubleJumpObserved": true,
   "animation": "idle_still",
   "controlsActive": false,
   "foregroundIsPet": true,
@@ -192,5 +212,4 @@ Three-second native ability rendering smoke test:
   "layeredWindow": true
 }
 
-Visual QA: checked windup, dash, white recovery, falling, radial impact and exit frames; checked both facings and high DPI pixel copying.
-Preview GIF is a 30 FPS export; live physics is 120 Hz and observed drawing averaged 61.6 FPS during this short single-monitor run.
+Visual QA: checked original Monarch Wings animation, abyss shriek windup / explosion / recovery, dash and descending dark; both facings remain inside the transparent canvas. Preview GIF exports use 30 FPS; live physics uses 120 Hz.

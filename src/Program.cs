@@ -15,6 +15,7 @@ internal static class Program
         if (args.Length >= 2 && args[0] == "--focus-test") return FocusTests.Run(args[1]);
         if (args.Length >= 2 && args[0] == "--focus-target") return FocusTests.RunTarget(args[1]);
         if (args.Length >= 2 && args[0] == "--preview-abilities") return AbilityPreview.Write(args[1]);
+        if (args.Length >= 2 && args[0] == "--preview-new-skills") return AbilityPreview.WriteNewSkills(args[1]);
         if (args.Length >= 2 && args[0] == "--preview-combat")
         {
             using var art=new SpriteArt();using var enemyArt=new MonsterArt();
@@ -91,7 +92,8 @@ internal sealed class PetForm : Form
     readonly bool smokeAutoClose;
     readonly bool abilitySmoke;
     readonly HashSet<string> smokePhases=[];
-    bool smokeDashStarted,smokeDiveStarted;
+    bool smokeDashStarted,smokeDiveStarted,smokeShriekStarted,smokeDoubleJumpStarted;
+    bool smokeDoubleJumpObserved;
     List<Platform> windows = [], colliders = [];
     List<WindowEdge> windowEdges = [];
     bool paused, debug, dragging, mousePressed, menuOpen, resourcesDisposed, pendingJump,pendingDive;
@@ -106,6 +108,7 @@ internal sealed class PetForm : Form
     internal AbilityPhase CurrentAbility=>abilities.Phase;
     internal bool NailVisible=>attack.Visible(clock.Elapsed.TotalSeconds);
     internal float DashCooldownRemaining=>abilities.DashRemaining;
+    internal float ShriekCooldownRemaining=>abilities.ShriekRemaining;
 
     public PetForm(string? smokePath,bool smokeAutoClose=true,bool abilitySmoke=false)
     {
@@ -139,6 +142,7 @@ internal sealed class PetForm : Form
         frequencyItem.Text=$"刷怪间隔：{settings.SpawnSeconds} 秒";
         menu.Items.Add(new ToolStripMenuItem("小骑士 · 桌面漫游") { Enabled=false });
         menu.Items.Add(new ToolStripMenuItem("点击 / 侧键激活 · A/D 移动 · Space 跳 · Enter 黑冲") { Enabled=false });
+        menu.Items.Add(new ToolStripMenuItem("Space 再按：二段跳 · 左 Shift：黑吼") {Enabled=false});
         menu.Items.Add(new ToolStripMenuItem("J：地面挥刀 / 空中黑砸") {Enabled=false});
         foreach(var choice in new[] {(1,"后退侧键（XButton1，默认）"),(2,"前进侧键（XButton2）"),(0,"关闭侧键激活")})
         {
@@ -202,11 +206,21 @@ internal sealed class PetForm : Form
         ResetPosition(); RefreshWorld(); lastTick=clock.Elapsed.TotalSeconds;
         timer.Start();
         if(smokePath == null) tray.ShowBalloonTip(4500,"点击小骑士或按鼠标侧键开始控制",activationShortcut.Installed
-            ? "A/D 移动，Space 跳跃，Enter 黑冲，J 地面挥刀 / 空中黑砸。切换应用或 Esc 停控。"
+            ? "A/D 移动，Space 二段跳，Enter 黑冲，左 Shift 黑吼，J 地面挥刀 / 空中黑砸。切换应用或 Esc 停控。"
             : "鼠标侧键监听启动失败，请点击角色激活。A/D 移动，Space 跳跃，J 攻击。",ToolTipIcon.Info);
     }
     protected override void WndProc(ref Message m)
     {
+        if(m.Msg is 0x100 or 0x101 && (long)m.WParam is 0x10 or 0xA0)
+        {
+            int scan=(int)((long)m.LParam>>16)&0xff;
+            if((long)m.WParam==0xA0 || scan==0x2a)
+            {
+                if(m.Msg==0x101)controls.KeyUp(Keys.LShiftKey);
+                else if(controls.Armed && !paused && !menuOpen)controls.KeyDown(Keys.LShiftKey);
+                return;
+            }
+        }
         if(m.Msg==0x84)
         {
             var point=Cursor.Position;
@@ -301,6 +315,7 @@ internal sealed class PetForm : Form
         bool jump=controls.TakeJump();
         bool swing=controls.TakeAttack();
         bool dash=controls.TakeDash();
+        bool shriek=controls.TakeShriek();
         if(abilitySmoke)
         {
             if(now>=.2 && !smokeDashStarted){abilities.StartDash(physics,1);smokeDashStarted=true;}
@@ -309,12 +324,19 @@ internal sealed class PetForm : Form
                 physics.Reset(physics.X,Screen.FromPoint(new Point((int)physics.X,(int)physics.Y)).WorkingArea.Bottom-Physics.Height-250);
                 abilities.StartDive(physics,1);smokeDiveStarted=true;
             }
+            if(now>=1.75 && !smokeShriekStarted){abilities.StartShriek(physics,1);smokeShriekStarted=true;}
+            if(now>=2.7 && !smokeDoubleJumpStarted)
+            {
+                physics.Reset(physics.X,Screen.FromPoint(new Point((int)physics.X,(int)physics.Y)).WorkingArea.Bottom-Physics.Height-100);
+                pendingJump=true;smokeDoubleJumpStarted=true;
+            }
         }
         if(controlsEnabled && jump) pendingJump=true;
-        if(!controlsEnabled) pendingJump=pendingDive=false;
+        if(!controlsEnabled && !abilitySmoke) pendingJump=pendingDive=false;
         int direction = controlsEnabled ? controls.Direction : 0;
         if(direction!=0) facing=direction;
         if(controlsEnabled && dash && !dragging && abilities.StartDash(physics,facing,direction)) {attack.Cancel();pendingJump=pendingDive=false;facing=abilities.Facing;}
+        if(controlsEnabled && shriek && !dragging && abilities.StartShriek(physics,facing)){attack.Cancel();pendingJump=pendingDive=false;facing=abilities.Facing;}
         if(controlsEnabled && swing && !dragging)
         {
             if(physics.Grounded && pendingJump && !abilities.Busy) pendingDive=true;
@@ -350,10 +372,11 @@ internal sealed class PetForm : Form
         if(smokePath!=null && monsters.Monsters.Count==0 && now<.2) monsters.Spawn(now,Lanes(),physics.Body);
         SyncMonsters();
         Present(); frames++;
+        if(abilitySmoke && physics.DoubleJumping)smokeDoubleJumpObserved=true;
         if(smokePath!=null)smokePhases.Add(abilities.Phase.ToString());
-        if(smokePath != null && smokeAutoClose && now>=3)
+        if(smokePath != null && smokeAutoClose && now>=(abilitySmoke?4:3))
         {
-            File.WriteAllText(smokePath,JsonSerializer.Serialize(new { frames,elapsedSeconds=now,observedFps=frames/now,windows=windows.Count,platforms=colliders.Count,physics.X,physics.Y,physics.Grounded,physics.AttachedSide,spriteFrames=art.FrameCount,abilityFrames=abilityArt.FrameCount,ability=abilities.Phase.ToString(),abilityPhases=smokePhases.Order().ToArray(),animation=art.State,controlsActive=controls.Armed,foregroundIsPet=Native.GetForegroundWindow()==Handle,monsterWindows=monsterForms.Count,monitors=Screen.AllScreens.Select(s=>new {s.Bounds,s.WorkingArea}),layeredWindow=true },new JsonSerializerOptions { WriteIndented=true,IncludeFields=true }));
+            File.WriteAllText(smokePath,JsonSerializer.Serialize(new { frames,elapsedSeconds=now,observedFps=frames/now,windows=windows.Count,platforms=colliders.Count,physics.X,physics.Y,physics.Grounded,physics.AttachedSide,spriteFrames=art.FrameCount,abilityFrames=abilityArt.FrameCount,ability=abilities.Phase.ToString(),abilityPhases=smokePhases.Order().ToArray(),doubleJumpObserved=smokeDoubleJumpObserved,animation=art.State,controlsActive=controls.Armed,foregroundIsPet=Native.GetForegroundWindow()==Handle,monsterWindows=monsterForms.Count,monitors=Screen.AllScreens.Select(s=>new {s.Bounds,s.WorkingArea}),layeredWindow=true },new JsonSerializerOptions { WriteIndented=true,IncludeFields=true }));
             Close();
         }
     }
@@ -363,7 +386,7 @@ internal sealed class PetForm : Form
         bool attacking=attack.Visible(now);
         using var sprite=art.Render(now,physics,attacking?attack.Facing:facing,paused||!controls.Armed,debug,attacking?attack.Age(now):-1);
         using var normal=CombatArt.Hero(sprite,attack,now,controls.Armed&&!paused);
-        using var image=abilityArt.Compose(normal,physics,abilities,controls.Armed&&!paused,debug);
+        using var image=abilityArt.Compose(normal,physics,abilities,controls.Armed&&!paused,debug,facing);
         Native.Present(Handle,image,(int)Math.Round(physics.X)-KnightArt.BodyLeft-AbilityArt.HeroX,(int)Math.Round(physics.Y)-KnightArt.BodyTop-AbilityArt.HeroY);
     }
     void OnMouseDown(object? sender,MouseEventArgs e)

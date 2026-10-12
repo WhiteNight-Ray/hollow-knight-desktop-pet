@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>HollowKnightPet</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>3.3.0</Version>
+    <Version>3.4.0</Version>
     <ApplicationIcon>HollowKnight.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>

@@ -5,12 +5,12 @@ namespace HollowKnightPet;
 internal sealed class PetControls
 {
     readonly HashSet<Keys> held = [];
-    bool jump, attack, dash;
+    bool jump, attack, dash,shriek;
     public bool Armed { get; private set; }
     public int Direction => Armed ? (held.Contains(Keys.D)?1:0)-(held.Contains(Keys.A)?1:0) : 0;
     public bool JumpHeld => Armed && held.Contains(Keys.Space);
     public void Activate() { Stop(); Armed=true; }
-    public void Stop() { Armed=false; held.Clear(); jump=attack=dash=false; }
+    public void Stop() { Armed=false; held.Clear(); jump=attack=dash=shriek=false; }
     public void CheckFocus(bool petIsForeground) { if (!petIsForeground) Stop(); }
     public void KeyDown(Keys key)
     {
@@ -18,11 +18,13 @@ internal sealed class PetControls
         if(key==Keys.Space) jump=true;
         if(key==Keys.J) attack=true;
         if(key==Keys.Enter) dash=true;
+        if(key==Keys.LShiftKey)shriek=true;
     }
     public void KeyUp(Keys key) => held.Remove(key);
     public bool TakeJump() { bool value=jump; jump=false; return value; }
     public bool TakeAttack() { bool value=attack; attack=false; return value; }
     public bool TakeDash() {bool value=dash;dash=false;return value;}
+    public bool TakeShriek(){bool value=shriek;shriek=false;return value;}
 }
 
 internal sealed class PetSettings
